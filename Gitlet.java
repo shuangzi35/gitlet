@@ -11,11 +11,11 @@ import java.util.Calendar;
 public class Gitlet implements Serializable {
 	private static final Path GITLET_DIR = Paths.get(".gitlet");
 	private CommitNode head;
-	private CommitNode parent;
+
 	private HashSet<String> untracking = new HashSet<String>();
-	private HashMap<String, CommitNode> commitID = new HashMap();
+	private HashMap<Integer, CommitNode> commitID = new HashMap<Integer, CommitNode>();
 	private LinkedList commitTree;
-	private HashSet<String> stagingArea = new HashSet<String>();
+	private  HashSet<String> stagingArea = new HashSet<String>();
 	private int lastId;
 
 	public void init() {
@@ -59,7 +59,10 @@ public class Gitlet implements Serializable {
 			e.printStackTrace();
 		}
 		stagingArea.add(name);
+		//head.tracking.add(name);
 	}
+	
+	
 
 	public void commit(String message) {
 		if (message == null) {
@@ -85,13 +88,21 @@ public class Gitlet implements Serializable {
 		// FIXME
 		Path source = Paths.get(".");
 		Path target = GITLET_DIR.resolve("commit").resolve(idName);
-		parent.fileTransfer(source, target); // from stagingArea to commit/id/
+		head.fileTransfer(source, target); // from stagingArea to commit/id/
+		HashMap<String, Integer> Newtrack  = new HashMap(head.tracking);
+		for(String path : untracking){
+			Newtrack.remove(path);
+		}
+		
+		for(String path : stagingArea){
+			Newtrack.put(path, currentid);
+		}
+		CommitNode parent;
 		parent = head; // advancing
 		head = new CommitNode(message, currentTime, currentid);
+		commitID.put(currentid, head);
 		commitTree.add(head);
 		head.prev = parent;
-		parent.next = head;
-		head.next = null;
 		reset();
 	}
 
@@ -108,13 +119,16 @@ public class Gitlet implements Serializable {
 			}
 		}
 	}
+	
+	
 
 	private class CommitNode {
 		private CommitNode prev;
-		private CommitNode next;
 		private String message;
 		private String date;
 		private int id = 0;
+		private HashMap<String, Integer> tracking = new HashMap<String, Integer>(); //know what you have
+		// parent.tracking + stagingArea - untracked  = me.tracking
 
 		public CommitNode(String m, String d, int i) {
 			message = m;
@@ -140,6 +154,52 @@ public class Gitlet implements Serializable {
 
 	}
 
+	public void rm(String name){
+		//FIXME
+		if (! isTracked(name)){
+			System.out.println("No reason to remove the file.");
+			return;
+		}
+		
+		if(stagingArea.contains(name)){
+			try{
+			Files.delete(GITLET_DIR.resolve("stagingArea").resolve(name));
+			} catch (IOException e) {
+				e.printStackTrace();
+			}
+		}
+		
+		untracking.add(name);
+		
+	}
+	
+	public boolean isTracked(String name){
+			if(stagingArea.contains(name)){
+				return true;
+			}
+			if(untracking.contains(name)){
+				return false;
+			}
+			
+			return head.tracking.containsKey(name);
+	}
+	
+	public void log(){
+		
+	}
+	
+	public void find(String message){
+		CommitNode T = commitID.get(message);
+		if(T ==null){
+			System.out.println("Found no commit with that message.");
+		}
+		System.out.println(T.id);
+	}
+	
+	public void checkout(String[] args){
+		if(args[0].equals("init"));
+		
+	}
 
 	public static void main(String[] args) {
 		Gitlet g = new Gitlet();
@@ -158,5 +218,7 @@ public class Gitlet implements Serializable {
 		}
 
 	}
+	
+	
 
 }

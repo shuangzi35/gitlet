@@ -15,8 +15,10 @@ public class Gitlet implements Serializable {
 	private HashSet<String> untracking = new HashSet<String>();
 	private HashMap<Integer, CommitNode> commitID = new HashMap<Integer, CommitNode>();
 	private LinkedList commitTree;
-	private  HashSet<String> stagingArea = new HashSet<String>();
+	private HashSet<String> stagingArea = new HashSet<String>();
 	private int lastId;
+	private HashMap<String, CommitNode> branches = new HashMap<Integer, CommitNode>();
+
 
 	public void init() {
 		boolean path_exists = Files.exists(GITLET_DIR);
@@ -92,8 +94,7 @@ public class Gitlet implements Serializable {
 		HashMap<String, Integer> Newtrack  = new HashMap(head.tracking);
 		for(String path : untracking){
 			Newtrack.remove(path);
-		}
-		
+		}	
 		for(String path : stagingArea){
 			Newtrack.put(path, currentid);
 		}
@@ -197,9 +198,46 @@ public class Gitlet implements Serializable {
 	}
 	
 	public void checkout(String[] args){
-		if(args[0].equals("init"));
-		
+		if(args.lenth >= 2){ 
+		// Gitlet checkout [commit id] [file name]
+			CommitNode  temp = commitID.get(args[0]);
+			Path source = temp.tracking.get(args[1]);
+			Files.copy(source, "." , REPLACE_EXISTING);
+		}
+
+		if( branches.containsKey(args[0])) {     // Gitlet checkout [branch name]
+			CommitNode temp = branches.get(args[0]);
+			int branchId = temp.lastId;
+			for(String path : temp.tracking){	
+				Path source = GITLET_DIR.resolve("commit").resolve(brachId).resolve(path);
+				Path target = path; 
+				Files.copy(source, target, REPLACE_EXISTING);
+			}
+			head = temp;
+		}else {
+		 	// Gitlet checkout [file name]
+			// what if file does not exist here
+			if(  notExists(Paths.get(args[0])) ){
+				System.out.println("File does not exist in the most recent commit, or no such branch exists");
+				return;
+			}
+			Path source = GITLET_DIR.resolve("commit").resolve(lastId).resolve(args[0]);
+			Path target  =  args[0];
+			Files.copy(source, target , REPLACE_EXISTING);
+            return;
+		}
+
+
+
 	}
+
+
+
+
+
+
+
+
 
 	public static void main(String[] args) {
 		Gitlet g = new Gitlet();
